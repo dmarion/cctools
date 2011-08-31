@@ -50,7 +50,6 @@
 #include <mach/i386/thread_status.h>
 #include <mach/hppa/thread_status.h>
 #include <mach/sparc/thread_status.h>
-#include <mach/arm/thread_status.h>
 #include <mach-o/nlist.h>
 #include <mach-o/reloc.h>
 #include <mach-o/ranlib.h>
@@ -303,10 +302,6 @@ __private_extern__ void swap_sparc_thread_state_fpu(
   struct sparc_thread_state_fpu *fpu,
   enum byte_sex target_byte_order);
 
-__private_extern__ void swap_arm_thread_state_t(
-    struct arm_thread_state *cpu,
-    enum byte_sex target_byte_sex);
-
 __private_extern__ void swap_ident_command(
     struct ident_command *id_cmd,
     enum byte_sex target_byte_sex);
@@ -337,10 +332,6 @@ __private_extern__ void swap_linkedit_data_command(
 
 __private_extern__ void swap_rpath_command(
     struct rpath_command *rpath_cmd,
-    enum byte_sex target_byte_sex);
-
-__private_extern__ void swap_encryption_command(
-    struct encryption_info_command *ec,
     enum byte_sex target_byte_sex);
 
 __private_extern__ void swap_nlist(

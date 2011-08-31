@@ -72,7 +72,7 @@ else
   MKDIRS = /bin/mkdir -p
 endif
 
-all clean: $(DSTROOT)
+all clean:
 	@if [ "$(SRCROOT)" != "" ] && \
 	    [ "$(OBJROOT)" != "" ] && \
 	    [ "$(SYMROOT)" != "" ];			\
@@ -110,9 +110,6 @@ install:
 	    if [ "$$projName" = cctools ];				\
 	    then							\
 		target=install_tools;					\
-	    elif [ "$$projName" = cctools_sdk ];			\
-	    then							\
-		target=install_tools;					\
 	    elif [ "$$projName" = cctoolslib ];				\
 	    then							\
 	    	target=lib_ofiles_install;				\
@@ -126,7 +123,7 @@ install:
 		RC_ARCHS="$(RC_ARCHS)" RC_OS="$(RC_OS)"			\
 		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)"		\
 		OLD_DYLD_STUFF="$(OLD_DYLD_STUFF)"			\
-		DSTROOT=$$DSTROOT/$(INSTALL_LOCATION)			\
+		DSTROOT=$$DSTROOT					\
 		SRCROOT=$(SRCROOT)					\
 		OBJROOT=$(OBJROOT)					\
 		SYMROOT=$(SYMROOT) $$target;				\

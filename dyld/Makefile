@@ -36,6 +36,8 @@ else
    SEG1ADDR = $(MACOSX_10_1_SEG1ADDR)
 endif
 
+PRIVATEHEADERS = /System/Library/Frameworks/System.framework/PrivateHeaders
+
 ifeq "macos" "$(RC_OS)"
   X_CFLAGS := $(shell if [ "$(RC_RELEASE)" != "Beaker" ] &&    \
 			 [ "$(RC_RELEASE)" != "Bunsen" ] &&    \
@@ -46,10 +48,12 @@ ifeq "macos" "$(RC_OS)"
 endif
 ifeq "mwccppc" "$(notdir $(CC))"
   CFLAGS = $(DEBUG) $(OFLAG) -dynamic -g -DDYLD_BUILD \
-	 -I$(SRCROOT)/../include -I$(SRCROOT) -I$(OBJROOT)
+	 -I$(SRCROOT)/../include -I$(SRCROOT) -I$(OBJROOT) \
+	 -I$(NEXT_ROOT)$(PRIVATEHEADERS)
 else
   CFLAGS = $(DEBUG) $(OFLAG) -dynamic -g -Wall -DDYLD_BUILD \
-	 -I$(SRCROOT)/../include -I$(SRCROOT) -I$(OBJROOT) $(X_CFLAGS)
+	 -I$(SRCROOT)/../include -I$(SRCROOT) -I$(OBJROOT) $(X_CFLAGS) \
+	 -I$(NEXT_ROOT)$(PRIVATEHEADERS)
   ASFLAGS = -force_cpusubtype_ALL
 endif
 LIBSTUFF = -L$(SYMROOT)/../libstuff -lstuff

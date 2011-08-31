@@ -1457,13 +1457,6 @@ void)
 	return(c);
 }
 
-#include <stdlib.h> /* for abort */
-
-segT S_GET_SEGMENT (symbolS *s)
-{
-  return s->sy_nlist.n_sect;
-}
-
 /*
  *			ignore_c_ll_or_ull
  *
