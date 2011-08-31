@@ -45,7 +45,8 @@ SYM_DIRS = $(SYMROOT)/driver_dir \
 	   $(SYMROOT)/appc64_dir \
 	   $(SYMROOT)/a860_dir \
 	   $(SYMROOT)/ahppa_dir \
-	   $(SYMROOT)/asparc_dir
+	   $(SYMROOT)/asparc_dir \
+	   $(SYMROOT)/aarm_dir
 
 OFILE_DIRS = $(OBJROOT)/driver_dir \
 	     $(OBJROOT)/a68_dir \
@@ -56,7 +57,8 @@ OFILE_DIRS = $(OBJROOT)/driver_dir \
 	     $(OBJROOT)/appc64_dir \
 	     $(OBJROOT)/a860_dir \
 	     $(OBJROOT)/ahppa_dir \
-	     $(OBJROOT)/asparc_dir
+	     $(OBJROOT)/asparc_dir \
+	     $(OBJROOT)/aarm_dir
 
 BINDIR = /bin
 USRBINDIR = /usr/bin
@@ -90,6 +92,7 @@ CFILES_i386 = i386.c
 CFILES_ppc = ppc.c
 CFILES_hppa = hppa.c hppa-aux.c
 CFILES_sparc = sparc.c
+CFILES_arm = arm.c
 
 
 HFILES = app.h as.h atof-ieee.h bignum.h expr.h fixes.h flonum.h frags.h \
@@ -97,15 +100,15 @@ HFILES = app.h as.h atof-ieee.h bignum.h expr.h fixes.h flonum.h frags.h \
 	 input-scrub.h layout.h m68k-opcode.h m88k-opcode.h ppc-opcode.h md.h \
 	 messages.h obstack.h read.h relax.h sections.h struc-symbol.h \
 	 symbols.h write_object.h xmalloc.h hppa-aux.h hppa-opcode.h \
-	 sparc-opcode.h
+	 sparc-opcode.h arch64_32.h
 
 CHECK_FILES = m68k-check.c m88k-check.c i860-check.c i386-check.c ppc-check.c \
 	      hppa-check.c sparc-check.c
 
 INSTALL_FILES = Makefile notes $(CFILES) $(CFILES_m68k) $(CFILES_m88k) \
 		$(CFILES_i860) $(CFILES_i386) $(CFILES_ppc) $(CFILES_hppa) \
-		$(CFILES_sparc) $(HFILES) $(CHECK_FILES) driver.c \
-		make.defs make_defs.h COPYING
+		$(CFILES_sparc) $(CFILES_arm) $(HFILES) $(CHECK_FILES) \
+		driver.c make.defs make_defs.h COPYING cctools.plist
 
 OBJS = $(CFILES:.c=.o) apple_version.o
 OBJS_m68k = $(CFILES_m68k:.c=.o)
@@ -115,9 +118,11 @@ OBJS_i386 = $(CFILES_i386:.c=.o)
 OBJS_ppc = $(CFILES_ppc:.c=.o)
 OBJS_hppa = $(CFILES_hppa:.c=.o)
 OBJS_sparc = $(CFILES_sparc:.c=.o)
+OBJS_arm = $(CFILES_arm:.c=.o)
 
 all:	$(OFILE_DIRS) $(SYM_DIRS) driver_build a68_build a88_build a386_build \
-	ax86_64_build a860_build appc_build appc64_build ahppa_build asparc_build
+	ax86_64_build a860_build appc_build appc64_build ahppa_build asparc_build \
+	aarm_build
 
 all_test:	a68_test a88_test a860_test a386_test appc_test ahppa_test
 
@@ -202,12 +207,12 @@ ax86_64_build:	$(OBJROOT)/ax86_64_dir
  		SRCROOT=.. TARGET_OBJS="$(OBJS_i386)" DEP_DIR=ax86_64_dir	\
  		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)" OFLAG=$(OFLAG)	\
  		COPTS="-DI386 -Di486 -Di586 -Di686 -DARCH64" \
- 		RC_CFLAGS="$(RC_CFLAGS)" LIBSTUFF="-lstuff64"; \
+ 		RC_CFLAGS="$(RC_CFLAGS)" LIBSTUFF="-lstuff"; \
  	else								\
  	    cd $(OBJROOT)/ax86_64_dir; $(MAKE) -f $(SRCROOT)/Makefile as	\
  		VPATH=$(SRCROOT) OFILE_DIR=$(OBJROOT)/ax86_64_dir		\
  		SYMROOT=$(SYMROOT)/ax86_64_dir SRCROOT=$(SRCROOT)		\
- 		TARGET_OBJS="$(OBJS_i386)" LIBSTUFF="-lstuff64"\
+ 		TARGET_OBJS="$(OBJS_i386)" LIBSTUFF="-lstuff"\
  		COPTS="-DI386 -Di486 -Di586 -Di686 -DARCH64" \
  		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)"		\
  		RC_CFLAGS="$(RC_CFLAGS)"  DEP_DIR=ax86_64_dir;		\
@@ -262,7 +267,7 @@ appc64_build:	$(OBJROOT)/appc64_dir
 		SRCROOT=.. TARGET_OBJS="$(OBJS_ppc)" DEP_DIR=appc64_dir	\
 		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)"		\
 		RC_CFLAGS="$(RC_CFLAGS)" OFLAG=$(OFLAG)			\
-		COPTS="-DPPC -DARCH64" LIBSTUFF="-lstuff64";		\
+		COPTS="-DPPC -DARCH64" LIBSTUFF="-lstuff";		\
 	else								\
 	    cd $(OBJROOT)/appc64_dir; $(MAKE) -f $(SRCROOT)/Makefile as	\
 		VPATH=$(SRCROOT) OFILE_DIR=$(OBJROOT)/appc64_dir	\
@@ -270,7 +275,7 @@ appc64_build:	$(OBJROOT)/appc64_dir
 		TARGET_OBJS="$(OBJS_ppc)" COPTS="-DPPC -DARCH64"	\
 		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)"		\
 		RC_CFLAGS="$(RC_CFLAGS)" DEP_DIR=appc64_dir		\
-		LIBSTUFF="-lstuff64";					\
+		LIBSTUFF="-lstuff";					\
 	fi
 
 appc_test: appc_dir
@@ -319,6 +324,22 @@ asparc_test: asparc_dir
 	cd asparc_dir; $(MAKE) -f ../Makefile sparc-check VPATH=.. \
 		OFILE_DIR=. SRCROOT=.. COPTS="-DSPARC"
 	cd asparc_dir; $(MAKE) -f ../Makefile test
+
+aarm_build:	$(OBJROOT)/aarm_dir
+	@if [ $(SRCROOT) = . ];						\
+	then								\
+	    cd aarm_dir; $(MAKE) -f ../Makefile as VPATH=.. OFILE_DIR=.\
+		SRCROOT=.. TARGET_OBJS="$(OBJS_arm)" DEP_DIR=aarm_dir\
+		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)" OFLAG=$(OFLAG)	\
+		RC_CFLAGS="$(RC_CFLAGS)" COPTS="-DARM";		\
+	else								\
+	    cd $(OBJROOT)/aarm_dir; $(MAKE) -f $(SRCROOT)/Makefile as	\
+		VPATH=$(SRCROOT) OFILE_DIR=$(OBJROOT)/aarm_dir	\
+		SYMROOT=$(SYMROOT)/aarm_dir SRCROOT=$(SRCROOT)	\
+		TARGET_OBJS="$(OBJS_arm)" COPTS="-DARM"		\
+		VERS_STRING_FLAGS="$(VERS_STRING_FLAGS)"		\
+		RC_CFLAGS="$(RC_CFLAGS)" DEP_DIR=aarm_dir;		\
+	fi
 
 driver:	driver.o apple_version.o
 	$(CC) $(COPTS) $(CFLAGS) $(RC_CFLAGS) -o $(SYMROOT)/driver \
@@ -409,6 +430,12 @@ xcommon_install:
 	$(MKDIRS) $(DSTROOT)$(USRBINDIR)
 	install -c -s -m 555 $(SYMROOT)/driver_dir/driver \
 		$(DSTROOT)$(USRBINDIR)/as	
+	$(MKDIRS) $(DSTROOT)/usr/local/OpenSourceVersions/
+	install -c -s -m 444 $(SRCROOT)/cctools.plist \
+		$(DSTROOT)/usr/local/OpenSourceVersions/cctools.plist
+	$(MKDIRS) $(DSTROOT)/usr/local/OpenSourceLicenses/
+	install -c -s -m 444 $(SRCROOT)/COPYING \
+		$(DSTROOT)/usr/local/OpenSourceLicenses/cctools.txt
 	$(MKDIRS) $(DSTROOT)$(LIBDIR)/ppc
 	install -c -s -m 555 $(SYMROOT)/appc_dir/as \
 		$(DSTROOT)$(LIBDIR)/ppc/as
@@ -421,6 +448,9 @@ xcommon_install:
 	$(MKDIRS) $(DSTROOT)$(LOCLIBDIR)/sparc 
 	install -c -s -m 555 $(SYMROOT)/asparc_dir/as \
 		$(DSTROOT)$(LOCLIBDIR)/sparc/as
+	$(MKDIRS) $(DSTROOT)$(LIBDIR)/arm
+	install -c -s -m 555 $(SYMROOT)/aarm_dir/as \
+		$(DSTROOT)$(LIBDIR)/arm/as
 
 nextstep_install: common_install
 	$(MKDIRS) $(DSTROOT)$(BINDIR)

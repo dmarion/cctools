@@ -73,6 +73,13 @@ char *input_line_pointer = NULL;
  */
 char *buffer_limit = NULL;	/* -> 1 + last char in buffer. */
 
+/* FROM line 164 */
+#define TARGET_BYTES_BIG_ENDIAN 0 /* HACK */
+/* TARGET_BYTES_BIG_ENDIAN is required to be defined to either 0 or 1
+   in the tc-<CPU>.h file.  See the "Porting GAS" section of the
+   internals manual.  */
+int target_big_endian = TARGET_BYTES_BIG_ENDIAN;
+
 /*
  * This table is used by the macros is_name_beginner() and is_part_of_name()
  * defined in read.h .
@@ -285,9 +292,9 @@ static const struct builtin_section builtin_sections[] = {
     /*
      * The text section must be first in this list as it is used by
      * read_a_source_file() to do the equivalent of a .text at the start
-     * of the file and for s_builtin_section() to set S_ATTR_PURE_INSTRUCTIONS.
+     * of the file.
      */
-    { "text",                "__TEXT", "__text" },
+    { "text",                "__TEXT", "__text", S_ATTR_PURE_INSTRUCTIONS },
     { "const",               "__TEXT", "__const" },
     { "static_const",        "__TEXT", "__static_const" },
     { "cstring",             "__TEXT", "__cstring", S_CSTRING_LITERALS },
@@ -484,6 +491,7 @@ static const pseudo_typeS pseudo_table[] = {
   { "include",	s_include,	0	},
   { "macro",	s_macro,	0	},
   { "endmacro",	s_endmacro,	0	},
+  { "endm",	s_endmacro,	0	},
   { "macros_on",s_macros_on,	0	},
   { "macros_off",s_macros_off,	0	},
   { "if",	s_if,		0	},
@@ -1675,6 +1683,7 @@ int value)
     char *p;
     signed_target_addr_t temp;
     symbolS *symbolP;
+    int power_of_2_alignment;
 
 	if(*input_line_pointer == '"')
 	    name = input_line_pointer + 1;
@@ -1696,6 +1705,19 @@ int value)
 	    ignore_rest_of_line();
 	    return;
 	}
+	power_of_2_alignment = 0;
+#define MAX_ALIGNMENT (15)
+	if(*input_line_pointer == ','){
+	    input_line_pointer++;
+	    power_of_2_alignment = get_absolute_expression();
+	    if(power_of_2_alignment > MAX_ALIGNMENT)
+		as_warn("Alignment too large: %d. assumed.",
+			power_of_2_alignment = MAX_ALIGNMENT);
+	    else if(power_of_2_alignment < 0){
+		as_warn("Alignment negative. 0 assumed.");
+		power_of_2_alignment = 0;
+	    }
+	}
 	*p = 0;
 	symbolP = symbol_find_or_make(name);
 	*p = c;
@@ -1715,6 +1737,7 @@ int value)
 	else{
 	    symbolP -> sy_value = temp;
 	    symbolP -> sy_type |= N_EXT;
+	    SET_COMM_ALIGN(symbolP->sy_desc, power_of_2_alignment);
 	}
 	know(symbolP->sy_frag == &zero_address_frag);
 	demand_empty_rest_of_line();
@@ -2013,7 +2036,7 @@ int value)
     char *name;
     char c;
     char *p;
-    int size;
+    signed_target_addr_t size;
     symbolS *symbolP;
     int align;
     static frchainS *bss = NULL;
@@ -2033,7 +2056,7 @@ int value)
 	}
 	input_line_pointer ++;
 	if((size = get_absolute_expression()) < 0){
-	    as_bad("BSS length (%d.) <0! Ignored.", size);
+	    as_bad("BSS length (" TA_DFMT ".) <0! Ignored.", size);
 	    ignore_rest_of_line();
 	    return;
 	}
@@ -2369,31 +2392,18 @@ const struct builtin_section *s)
 	    if((s->flags & SECTION_TYPE) == S_NON_LAZY_SYMBOL_POINTERS ||
 	       (s->flags & SECTION_TYPE) == S_LAZY_SYMBOL_POINTERS ||
 	       (s->flags & SECTION_TYPE) == S_SYMBOL_STUBS ||
+#if !(defined(I386) && defined(ARCH64))
 	       (s->flags & SECTION_TYPE) == S_MOD_INIT_FUNC_POINTERS ||
 	       (s->flags & SECTION_TYPE) == S_MOD_TERM_FUNC_POINTERS ||
-	       (s->flags & SECTION_ATTRIBUTES) != 0)
+#endif
+	       (s->flags & SECTION_ATTRIBUTES & ~S_ATTR_PURE_INSTRUCTIONS) != 0)
 		as_fatal("incompatible feature used: directive .%s (must "
 			 "specify \"-dynamic\" to be used)", s->directive);
 	}
-	/*
-	 * If we allowed to use the new features that are incompatible with 3.2
-	 * and this is the text section (which relys on the fact that the text
-	 * section is first in the built in sections list) then add the
-	 * S_ATTR_PURE_INSTRUCTIONS to the section attributes.
-	 */
-	if(flagseen['k'] && s == builtin_sections){
-	    frcP = section_new(s->segname, s->sectname,
-			       s->flags & SECTION_TYPE,
-			       (s->flags & SECTION_ATTRIBUTES) |
-					S_ATTR_PURE_INSTRUCTIONS,
-			       s->sizeof_stub);
-	}
-	else{
-	    frcP = section_new(s->segname, s->sectname,
-			       s->flags & SECTION_TYPE,
-			       s->flags & SECTION_ATTRIBUTES, 
-			       s->sizeof_stub);
-	}
+	frcP = section_new(s->segname, s->sectname,
+			   s->flags & SECTION_TYPE,
+			   s->flags & SECTION_ATTRIBUTES, 
+			   s->sizeof_stub);
 	if(frcP->frch_section.align < s->default_align)
 	    frcP->frch_section.align = s->default_align;
 	return(frcP->frch_nsect);
@@ -2430,6 +2440,7 @@ int value)
 	}
 	p = input_line_pointer - 1;
 
+	SKIP_WHITESPACE();
 	sectname = input_line_pointer;
 	do{
 	    d = *input_line_pointer++ ;
@@ -2588,6 +2599,7 @@ int value)
 	}
 	p = input_line_pointer - 1;
 
+	SKIP_WHITESPACE();
 	sectname = input_line_pointer;
 	do{
 	    d = *input_line_pointer++ ;
@@ -4142,6 +4154,7 @@ char *macro_contents)
 	    else{
 		int parenthesis_depth = 0;
 		do{
+		    SKIP_WHITESPACE();
 		    c = *input_line_pointer++;
 		    if(parenthesis_depth){
 			if(c == ')')
