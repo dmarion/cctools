@@ -212,6 +212,10 @@ static void usage(
 static struct thin_file *new_blank_dylib(
     struct arch_flag *arch);
 
+/* apple_version is created by the libstuff/Makefile */
+extern char apple_version[];
+char *version = apple_version;
+
 int
 main(
 int argc,
@@ -1191,6 +1195,7 @@ struct input_file *input)
 		thin->fat_arch.align = 0;
 	    }
 	    else{
+#ifdef LTO_SUPPORT
 		if(is_llvm_bitcode_from_memory(addr, size, &input->arch_flag,
 					       NULL) != 0){
 		    /* create a thin file struct for it */
@@ -1204,6 +1209,7 @@ struct input_file *input)
 		    thin->fat_arch.align = 0;
 		}
 		else
+#endif /* LTO_SUPPORT */
 		    fatal("can't figure out the architecture type of: %s",
 			  input->name);
 	    }
@@ -1444,6 +1450,7 @@ cpu_subtype_t *cpusubtype)
 		    if(strncmp(ar_name, SYMDEF, sizeof(SYMDEF) - 1) != 0){
 			ar_addr = addr + offset + ar_name_size;
 			ar_size = strtoul(ar_hdr->ar_size, NULL, 10);
+#ifdef LTO_SUPPORT
 			if(is_llvm_bitcode_from_memory(ar_addr, ar_size,
 						       &arch_flag, NULL) != 0){
 			    if(*cputype == 0){
@@ -1461,6 +1468,7 @@ cpu_subtype_t *cpusubtype)
 				      (*cpusubtype) & ~CPU_SUBTYPE_MASK);
 			    }
 			}
+#endif /* LTO_SUPPORT */
 		    }
 		}
 	    } 
